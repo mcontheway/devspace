@@ -15,6 +15,10 @@ export interface ServerConfig {
   toolNaming: ToolNamingMode;
   stateDir: string;
   worktreeRoot: string;
+  skillsEnabled: boolean;
+  compactSkills: boolean;
+  skillPaths: string[];
+  agentDir: string;
 }
 
 function parsePort(value: string | undefined): number {
@@ -57,6 +61,16 @@ function parseMinimalTools(env: NodeJS.ProcessEnv): boolean {
   return env.DEVSPACE_TOOL_MODE === "minimal" || parseBoolean(env.DEVSPACE_MINIMAL_TOOLS);
 }
 
+function parseList(value: string | undefined): string[] {
+  return (
+    value
+      ?.split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => resolve(expandHomePath(entry))) ?? []
+  );
+}
+
 function parseToolNaming(value: string | undefined): ToolNamingMode {
   if (!value || value === "legacy") return "legacy";
   if (value === "short") return "short";
@@ -72,6 +86,10 @@ function defaultWorktreeRoot(): string {
   return join(homedir(), ".devspace", "worktrees");
 }
 
+function defaultAgentDir(): string {
+  return join(homedir(), ".pi", "agent");
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     host: env.HOST ?? "127.0.0.1",
@@ -84,5 +102,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     toolNaming: parseToolNaming(env.DEVSPACE_TOOL_NAMING),
     stateDir: resolve(env.DEVSPACE_STATE_DIR ?? defaultStateDir()),
     worktreeRoot: resolve(expandHomePath(env.DEVSPACE_WORKTREE_ROOT ?? defaultWorktreeRoot())),
+    skillsEnabled: parseBoolean(env.DEVSPACE_SKILLS),
+    compactSkills: parseBoolean(env.DEVSPACE_COMPACT_SKILLS),
+    skillPaths: parseList(env.DEVSPACE_SKILL_PATHS),
+    agentDir: resolve(expandHomePath(env.DEVSPACE_AGENT_DIR ?? defaultAgentDir())),
   };
 }
