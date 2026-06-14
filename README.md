@@ -87,10 +87,25 @@ calls:
 }
 ```
 
-The server automatically loads `AGENTS.md` files for the workspace root and for
-directories reached by later file, list, search, edit, write, or shell calls.
-Tool responses include whether each discovered `AGENTS.md` was newly loaded or
-already loaded in that workspace.
+By default, the server automatically loads `AGENTS.md` files for the workspace
+root and for directories reached by later file, list, search, edit, write, or
+shell calls. Project instructions are returned as XML-wrapped project context
+using workspace-relative paths:
+
+```xml
+<project_context>
+Project-specific instructions and guidelines:
+
+<project_instructions path="AGENTS.md">
+...
+</project_instructions>
+</project_context>
+```
+
+Set `DEVSPACE_AUTO_LOAD_AGENTS_MD=0` to disable automatic `AGENTS.md` injection.
+When disabled, DevSpace instead instructs the model to use the read tool to
+inspect relevant `AGENTS.md` files before working in the workspace or a
+subdirectory.
 
 ## Skills
 
@@ -139,6 +154,7 @@ DEVSPACE_ALLOWED_ROOTS="/home/waishnav/personal,/home/waishnav/work" \
 DEVSPACE_ALLOWED_HOSTS="localhost,127.0.0.1,agent.gitcms.blog" \
 DEVSPACE_PUBLIC_BASE_URL="https://agent.gitcms.blog" \
 DEVSPACE_WORKTREE_ROOT="/home/waishnav/.devspace/worktrees" \
+DEVSPACE_AUTO_LOAD_AGENTS_MD="1" \
 DEVSPACE_SKILLS="1" \
 DEVSPACE_SKILL_PATHS="/home/waishnav/.codex/skills,/home/waishnav/.claude/skills" \
 DEVSPACE_TOOL_MODE="full" \
