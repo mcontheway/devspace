@@ -50,9 +50,7 @@ export class WorkspaceRegistry {
   getWorkspace(workspaceId: string): Workspace {
     const workspace = this.workspaces.get(workspaceId);
     if (!workspace) {
-      throw new Error(
-        `Unknown workspaceId: ${workspaceId}. Open a workspace once with open_workspace, then reuse its workspaceId for follow-up calls.`,
-      );
+      throw new Error(`Unknown workspaceId: ${workspaceId}. Call open_workspace first.`);
     }
 
     return workspace;

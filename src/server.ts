@@ -247,8 +247,8 @@ function createMcpServer(
     },
     {
       instructions: config.minimalTools
-        ? "Use this server as a local coding workspace harness. Open a workspace once per project session by calling open_workspace with a project directory inside an allowed root. Reuse the returned workspaceId for all later file, edit, write, and shell tools in that project; only call open_workspace again for a different project/root or if the workspaceId is no longer valid. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. In minimal tool mode, grep_files, find_files, and list_directory are disabled; use run_shell with command-line tools such as grep, rg, find, ls, and tree for search and directory inspection. Prefer read_file for direct file reads, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git/search/list commands. Do not create or modify files with run_shell; avoid shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or any command whose purpose is to write project files."
-        : "Use this server as a local coding workspace harness. Open a workspace once per project session by calling open_workspace with a project directory inside an allowed root. Reuse the returned workspaceId for all later file, search, edit, write, and shell tools in that project; only call open_workspace again for a different project/root or if the workspaceId is no longer valid. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. Prefer read_file and search tools for inspection, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git commands. Do not create or modify files with run_shell; avoid shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or any command whose purpose is to write project files.",
+        ? "Use this server as a local coding workspace harness. First call open_workspace with a project directory inside an allowed root. Then use the returned workspaceId for all file, edit, write, and shell tools. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. In minimal tool mode, grep_files, find_files, and list_directory are disabled; use run_shell with command-line tools such as grep, rg, find, ls, and tree for search and directory inspection. Prefer read_file for direct file reads, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git/search/list commands. Do not create or modify files with run_shell; avoid shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or any command whose purpose is to write project files."
+        : "Use this server as a local coding workspace harness. First call open_workspace with a project directory inside an allowed root. Then use the returned workspaceId for all file, search, edit, write, and shell tools. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. Prefer read_file and search tools for inspection, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git commands. Do not create or modify files with run_shell; avoid shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or any command whose purpose is to write project files.",
     },
   );
 
@@ -345,7 +345,7 @@ function createMcpServer(
     {
       title: "Open workspace",
       description:
-        "Open a local project directory as a coding workspace. Call this once per project session before other project tools, then reuse the returned workspaceId for subsequent reads, edits, searches, writes, and shell commands in that workspace. Only call it again for a different project/root or if the workspaceId is no longer valid. Returns a workspaceId and any AGENTS.md instructions discovered at the workspace root.",
+        "Open a local project directory as a coding workspace. This must be the first tool call before reading, editing, searching, writing, or running commands in a project. Returns a workspaceId and any AGENTS.md instructions discovered at the workspace root.",
       inputSchema: {
         path: z
           .string()
@@ -447,7 +447,7 @@ function createMcpServer(
     {
       title: "Read file",
       description:
-        "Read a file inside an open workspace. Use this for file inspection instead of shell commands like cat or sed. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project. If the file path enters a directory with an AGENTS.md, that AGENTS.md context is returned as newly loaded or already loaded.",
+        "Read a file inside an open workspace. Use this for file inspection instead of shell commands like cat or sed. Call open_workspace first and pass workspaceId. If the file path enters a directory with an AGENTS.md, that AGENTS.md context is returned as newly loaded or already loaded.",
       inputSchema: {
         workspaceId: z
           .string()
@@ -539,7 +539,7 @@ function createMcpServer(
     {
       title: "Write file",
       description:
-        "Create or completely overwrite a file inside an open workspace. Prefer edit_file for targeted changes to existing files. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project.",
+        "Create or completely overwrite a file inside an open workspace. Prefer edit_file for targeted changes to existing files. Call open_workspace first and pass workspaceId.",
       inputSchema: {
         workspaceId: z
           .string()
@@ -620,7 +620,7 @@ function createMcpServer(
     {
       title: "Edit file",
       description:
-        "Edit one file inside an open workspace by replacing exact text blocks. Prefer this over write_file for targeted changes. Each oldText must match a unique, non-overlapping region of the original file; merge nearby changes into one edit and keep oldText as small as possible while still unique. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project.",
+        "Edit one file inside an open workspace by replacing exact text blocks. Prefer this over write_file for targeted changes. Each oldText must match a unique, non-overlapping region of the original file; merge nearby changes into one edit and keep oldText as small as possible while still unique. Call open_workspace first and pass workspaceId.",
       inputSchema: {
         workspaceId: z
           .string()
@@ -729,7 +729,7 @@ function createMcpServer(
       {
         title: "Grep files",
         description:
-          "Search file contents inside an open workspace. Use this before broad reads when looking for symbols, text, or usage sites. Respects the underlying Pi grep behavior, including project ignore rules. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project.",
+          "Search file contents inside an open workspace. Use this before broad reads when looking for symbols, text, or usage sites. Respects the underlying Pi grep behavior, including project ignore rules. Call open_workspace first and pass workspaceId.",
         inputSchema: {
           workspaceId: z
             .string()
@@ -816,7 +816,7 @@ function createMcpServer(
       {
         title: "Find files",
         description:
-          "Find files by glob pattern inside an open workspace. Use this to discover filenames or narrow file sets before reading. Respects the underlying Pi find behavior, including project ignore rules. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project.",
+          "Find files by glob pattern inside an open workspace. Use this to discover filenames or narrow file sets before reading. Respects the underlying Pi find behavior, including project ignore rules. Call open_workspace first and pass workspaceId.",
         inputSchema: {
           workspaceId: z
             .string()
@@ -900,7 +900,7 @@ function createMcpServer(
       {
         title: "List directory",
         description:
-          "List a directory inside an open workspace. Use this for directory inspection before reading files. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project.",
+          "List a directory inside an open workspace. Use this for directory inspection before reading files. Call open_workspace first and pass workspaceId.",
         inputSchema: {
           workspaceId: z
             .string()
@@ -977,8 +977,8 @@ function createMcpServer(
     {
       title: "Run shell",
       description: config.minimalTools
-        ? "Run a shell command inside an open workspace. Use only for tests, builds, git inspection, package scripts, search, file discovery, and directory inspection. You can use command-line tools such as grep, rg, find, ls, and tree for those read-only inspection actions. Do not use run_shell to create or modify files. Do not use shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or generated scripts to write project files; use edit_file for targeted changes and write_file for new files or full rewrites. Prefer read_file for direct file reads. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project."
-        : "Run a shell command inside an open workspace. Use only for tests, builds, git inspection, package scripts, and commands that are better executed by the shell. Do not use run_shell to create or modify files. Do not use shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or generated scripts to write project files; use edit_file for targeted changes and write_file for new files or full rewrites. Prefer read_file, grep_files, find_files, and list_directory for file inspection. Pass an existing workspaceId returned by open_workspace; reuse the same workspaceId for follow-up calls in that project.",
+        ? "Run a shell command inside an open workspace. Use only for tests, builds, git inspection, package scripts, search, file discovery, and directory inspection. In minimal tool mode, grep_files, find_files, and list_directory are disabled; use command-line tools such as grep, rg, find, ls, and tree for those read-only inspection actions. Do not use run_shell to create or modify files. Do not use shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or generated scripts to write project files; use edit_file for targeted changes and write_file for new files or full rewrites. Prefer read_file for direct file reads. Call open_workspace first and pass workspaceId. This is powerful local execution and should only be exposed behind strong authentication."
+        : "Run a shell command inside an open workspace. Use only for tests, builds, git inspection, package scripts, and commands that are better executed by the shell. Do not use run_shell to create or modify files. Do not use shell redirection, heredocs, tee, sed -i, perl -i, node/python/ruby scripts, or generated scripts to write project files; use edit_file for targeted changes and write_file for new files or full rewrites. Prefer read_file, grep_files, find_files, and list_directory for file inspection. Call open_workspace first and pass workspaceId. This is powerful local execution and should only be exposed behind strong authentication.",
       inputSchema: {
         workspaceId: z
           .string()

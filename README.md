@@ -37,7 +37,7 @@ workspace again for new file, edit, search, or shell tool calls.
 
 ## Workspace Flow
 
-Call `open_workspace` once per project session before using the coding tools:
+Call `open_workspace` before using the coding tools:
 
 ```json
 {
@@ -45,9 +45,8 @@ Call `open_workspace` once per project session before using the coding tools:
 }
 ```
 
-The result includes a `workspaceId`. Reuse that same `workspaceId` for subsequent
-calls in the project. Call `open_workspace` again only for a different
-project/root or when the previous `workspaceId` is no longer valid:
+The result includes a `workspaceId`. Use that `workspaceId` for subsequent
+calls:
 
 ```json
 {
