@@ -235,7 +235,9 @@ function createMcpServer(
     },
     {
       instructions:
-        "Use this server as a local coding workspace harness. First call open_workspace with a project directory inside an allowed root. Then use the returned workspaceId for all file, search, edit, write, and shell tools. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. Prefer read_file and search tools for inspection, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git commands.",
+        config.minimalTools
+          ? "Use this server as a local coding workspace harness. First call open_workspace with a project directory inside an allowed root. Then use the returned workspaceId for all file, edit, write, and shell tools. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. In minimal tool mode, grep_files, find_files, and list_directory are disabled; use run_shell with command-line tools such as grep, rg, find, ls, and tree for search and directory inspection. Prefer read_file for direct file reads, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git/search/list commands."
+          : "Use this server as a local coding workspace harness. First call open_workspace with a project directory inside an allowed root. Then use the returned workspaceId for all file, search, edit, write, and shell tools. Follow any AGENTS.md context returned by open_workspace or subsequent tool calls. Prefer read_file and search tools for inspection, edit_file for targeted modifications, write_file only for new files or complete rewrites, and run_shell for tests/builds/git commands.",
     },
   );
 
@@ -704,7 +706,8 @@ function createMcpServer(
     },
   );
 
-  registerAppTool(
+  if (!config.minimalTools) {
+    registerAppTool(
     server,
     "grep_files",
     {
@@ -946,13 +949,17 @@ function createMcpServer(
     },
   );
 
+  }
+
   registerAppTool(
     server,
     "run_shell",
     {
       title: "Run shell",
       description:
-        "Run a shell command inside an open workspace. Use for tests, builds, git inspection, package scripts, and commands that are better executed by the shell. Prefer read_file, grep_files, find_files, and list_directory for file inspection. Call open_workspace first and pass workspaceId. This is powerful local execution and should only be exposed behind strong authentication.",
+        config.minimalTools
+          ? "Run a shell command inside an open workspace. Use for tests, builds, git inspection, package scripts, search, file discovery, and directory inspection. In minimal tool mode, grep_files, find_files, and list_directory are disabled; use command-line tools such as grep, rg, find, ls, and tree for those actions. Prefer read_file for direct file reads and use shell commands for broad inspection. Call open_workspace first and pass workspaceId. This is powerful local execution and should only be exposed behind strong authentication."
+          : "Run a shell command inside an open workspace. Use for tests, builds, git inspection, package scripts, and commands that are better executed by the shell. Prefer read_file, grep_files, find_files, and list_directory for file inspection. Call open_workspace first and pass workspaceId. This is powerful local execution and should only be exposed behind strong authentication.",
       inputSchema: {
         workspaceId: z
           .string()
