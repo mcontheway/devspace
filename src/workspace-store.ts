@@ -8,10 +8,17 @@ import {
   type WorkspaceSessionRow,
 } from "./db/schema.js";
 
+export type WorkspaceMode = "checkout" | "worktree";
+
 export interface WorkspaceSession {
   id: string;
   root: string;
   status: string;
+  mode: WorkspaceMode;
+  sourceRoot?: string;
+  baseRef?: string;
+  baseSha?: string;
+  managed: boolean;
   createdAt: string;
   lastUsedAt: string;
 }
@@ -25,7 +32,15 @@ export interface LoadedAgentFileState {
 }
 
 export interface WorkspaceStore {
-  createSession(input: { id: string; root: string }): WorkspaceSession;
+  createSession(input: {
+    id: string;
+    root: string;
+    mode?: WorkspaceMode;
+    sourceRoot?: string;
+    baseRef?: string;
+    baseSha?: string;
+    managed?: boolean;
+  }): WorkspaceSession;
   getSession(id: string): WorkspaceSession | undefined;
   touchSession(id: string): void;
   listLoadedAgentFiles(workspaceSessionId: string): LoadedAgentFileState[];
@@ -45,12 +60,25 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
     this.migrate();
   }
 
-  createSession(input: { id: string; root: string }): WorkspaceSession {
+  createSession(input: {
+    id: string;
+    root: string;
+    mode?: WorkspaceMode;
+    sourceRoot?: string;
+    baseRef?: string;
+    baseSha?: string;
+    managed?: boolean;
+  }): WorkspaceSession {
     const now = new Date().toISOString();
     const session: WorkspaceSession = {
       id: input.id,
       root: input.root,
       status: "active",
+      mode: input.mode ?? "checkout",
+      sourceRoot: input.sourceRoot,
+      baseRef: input.baseRef,
+      baseSha: input.baseSha,
+      managed: input.managed ?? false,
       createdAt: now,
       lastUsedAt: now,
     };
@@ -61,6 +89,11 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
         id: session.id,
         root: session.root,
         status: session.status,
+        mode: session.mode,
+        sourceRoot: session.sourceRoot ?? null,
+        baseRef: session.baseRef ?? null,
+        baseSha: session.baseSha ?? null,
+        managed: String(session.managed),
         createdAt: session.createdAt,
         lastUsedAt: session.lastUsedAt,
       })
@@ -156,6 +189,11 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
         id text primary key,
         root text not null,
         status text not null default 'active',
+        mode text not null default 'checkout',
+        source_root text,
+        base_ref text,
+        base_sha text,
+        managed text not null default 'false',
         created_at text not null,
         last_used_at text not null
       );
@@ -182,6 +220,21 @@ export class SqliteWorkspaceStore implements WorkspaceStore {
       create index if not exists loaded_agent_files_path_idx
         on loaded_agent_files(path);
     `);
+
+    this.addColumnIfMissing("workspace_sessions", "mode", "text not null default 'checkout'");
+    this.addColumnIfMissing("workspace_sessions", "source_root", "text");
+    this.addColumnIfMissing("workspace_sessions", "base_ref", "text");
+    this.addColumnIfMissing("workspace_sessions", "base_sha", "text");
+    this.addColumnIfMissing("workspace_sessions", "managed", "text not null default 'false'");
+  }
+
+  private addColumnIfMissing(table: string, column: string, definition: string): void {
+    const columns = this.database.sqlite.prepare(`pragma table_info(${table})`).all() as Array<{
+      name: string;
+    }>;
+    if (columns.some((existingColumn) => existingColumn.name === column)) return;
+
+    this.database.sqlite.exec(`alter table ${table} add column ${column} ${definition}`);
   }
 }
 
@@ -194,6 +247,11 @@ function rowToWorkspaceSession(row: WorkspaceSessionRow): WorkspaceSession {
     id: row.id,
     root: row.root,
     status: row.status,
+    mode: row.mode === "worktree" ? "worktree" : "checkout",
+    sourceRoot: row.sourceRoot ?? undefined,
+    baseRef: row.baseRef ?? undefined,
+    baseSha: row.baseSha ?? undefined,
+    managed: row.managed === "true",
     createdAt: row.createdAt,
     lastUsedAt: row.lastUsedAt,
   };
